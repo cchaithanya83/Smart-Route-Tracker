@@ -20,9 +20,9 @@ const UserDashboard: React.FC = () => {
   const generateLast10Days = () => {
     const days: string[] = [];
     const today = new Date();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const date = new Date(today);
-      date.setDate(date.getDate() - i);
+      date.setDate(date.getDate() + i);
       days.push(date.toISOString().split("T")[0]);
     }
     return days;
