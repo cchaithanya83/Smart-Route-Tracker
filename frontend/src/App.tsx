@@ -31,12 +31,12 @@ const App: React.FC = () => {
               >
                 Admin Dashboard
               </Link>
-              {/* <Link
+              <Link
                 className="text-white hover:text-blue-400 transition duration-200"
                 to="/UserDashboard"
               >
                 User Dashboard
-              </Link> */}
+              </Link>
               <Link
                 className="text-white hover:text-blue-400 transition duration-200"
                 to="/history"

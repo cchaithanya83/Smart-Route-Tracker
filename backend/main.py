@@ -314,9 +314,11 @@ def set_phone_number(update: PhoneNumberUpdate, db=Depends(get_db)):
 
     return {"message": f"Phone number set for house {house_id}"}
 
+
 account_sid = os.getenv('TWILIO_ACCOUNT_SID')
 auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 client = Client(account_sid, auth_token)
+
 
 # Update visit time for a house and send an SMS
 @app.post("/update-visit-time")
@@ -364,30 +366,64 @@ def get_distance(house1: int, house2: int, db=Depends(get_db)):
         return {"distance": row["distance"]}
     else:
         raise HTTPException(status_code=404, detail="Distance not found between the given houses.")
+    
+    
+    
+    
+class HouseVisitDetailResponse(BaseModel):
+    house_id: int
+    last_visited_date: str
+    phone_number: str
+    is_scheduled_today: bool
+
+@app.get("/get-visit-info", response_model=List[HouseVisitDetailResponse])
+def get_visit_info(date: str, house_id: int, db=Depends(get_db)):
+    cursor = db.cursor()
+
+    # Query the last visited date and phone number of the house
+    cursor.execute("""
+        SELECT hv.last_visited_date, hv.phone_number
+        FROM house_visits hv
+        WHERE hv.house_id = ?
+    """, (house_id,))
+    
+    house_visit_data = cursor.fetchone()
+
+    if not house_visit_data:
+        return {"error": "House not found"}
+
+    last_visited_date, phone_number = house_visit_data
+    
+    # Check if the visit is scheduled today
+    today = datetime.today().date()
+    is_scheduled_today = False
+    
+    cursor.execute("""
+    SELECT r.date, r.optimal_route
+    FROM routes r
+    WHERE r.date = ? AND (
+        r.optimal_route LIKE ? OR
+        r.optimal_route LIKE ? OR
+        r.optimal_route LIKE ?
+    )
+""", (date, 
+      f'{house_id}.0,%',    # Check if house_id is at the beginning (e.g., '17.0,')
+      f'%,{house_id}.0,%',   # Check if house_id is in the middle (e.g., ',17.0,')
+      f'%,{house_id}.0'))    # Check if house_id is at the end (e.g., ',17.0')
 
 
+    route_data = cursor.fetchone()
+    
+    if route_data:
+        # If there is a match, the house is scheduled to be visited today
+        is_scheduled_today = True
 
+    # Prepare the response object
+    response = {
+        "house_id": house_id,
+        "last_visited_date": last_visited_date if last_visited_date else "N/A",
+        "phone_number": phone_number if phone_number else "N/A",
+        "is_scheduled_today": is_scheduled_today
+    }
 
-
-
-
-
-
-
-
-
-
-# Set phone numbers for houses from 1 to 100
-@app.post("/set-phone-numbers-for-all")
-def set_phone_numbers(phone_number: str, db=Depends(get_db)):
-    for house_id in range(1, 101):
-        cursor = db.cursor()
-        cursor.execute("""
-            INSERT INTO house_visits (house_id, phone_number) 
-            VALUES (?, ?) 
-            ON CONFLICT(house_id) 
-            DO UPDATE SET phone_number=excluded.phone_number
-        """, (house_id, phone_number))
-        db.commit()
-
-    return {"message": "Phone numbers set for house IDs 1 to 100."}
+    return [response]
