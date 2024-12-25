@@ -427,3 +427,73 @@ def get_visit_info(date: str, house_id: int, db=Depends(get_db)):
     }
 
     return [response]
+
+@app.on_event("startup")
+def initialize_database():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_queries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            house_id INTEGER NOT NULL,
+            phone_number TEXT NOT NULL,
+            query TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.commit()
+    db.close()
+
+# Pydantic models
+class QueryRequest(BaseModel):
+    house_id: int
+    phone_number: str
+    query: str
+
+class QueryResponse(BaseModel):
+    id: int
+    house_id: int
+    phone_number: str
+    query: str
+    status: str
+    created_at: str
+
+class QueryStatusUpdate(BaseModel):
+    query_id: int
+
+# Add a new query
+@app.post("/add-query", response_model=QueryResponse)
+def add_query(query_request: QueryRequest, db=Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("""
+        INSERT INTO user_queries (house_id, phone_number, query)
+        VALUES (?, ?, ?)
+    """, (query_request.house_id, query_request.phone_number, query_request.query))
+    db.commit()
+    query_id = cursor.lastrowid
+    cursor.execute("SELECT * FROM user_queries WHERE id = ?", (query_id,))
+    new_query = cursor.fetchone()
+    return dict(new_query)
+
+# Get all queries
+@app.get("/get-queries", response_model=List[QueryResponse])
+def get_queries(db=Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM user_queries")
+    queries = cursor.fetchall()
+    return [dict(query) for query in queries]
+
+# Mark a query as done
+@app.patch("/mark-query-done")
+def mark_query_done(update: QueryStatusUpdate, db=Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("""
+        UPDATE user_queries 
+        SET status = 'done'
+        WHERE id = ?
+    """, (update.query_id,))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Query not found")
+    db.commit()
+    return {"message": f"Query {update.query_id} marked as done"}

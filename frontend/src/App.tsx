@@ -6,6 +6,8 @@ import HouseVisitHistory from "./components/HouseVisitHistory";
 import PhoneNumberForm from "./components/PhoneNumberForm";
 import Dashboard from "./components/Dashboard";
 import UserDashboard from "./components/UserDashboard";
+import About from "./components/About";
+import QueryManagement from "./components/Query";
 
 const App: React.FC = () => {
   return (
@@ -21,6 +23,12 @@ const App: React.FC = () => {
               <Link
                 className="text-white hover:text-blue-400 transition duration-200"
                 to="/"
+              >
+                About
+              </Link>
+              <Link
+                className="text-white hover:text-blue-400 transition duration-200"
+                to="/OptimalRouteForm"
               >
                 Optimal Route
               </Link>
@@ -49,6 +57,12 @@ const App: React.FC = () => {
               >
                 House Visit History
               </Link>
+              <Link
+                className="text-white hover:text-blue-400 transition duration-200"
+                to="/Query"
+              >
+                User Query
+              </Link>
             </div>
           </div>
         </nav>
@@ -59,12 +73,13 @@ const App: React.FC = () => {
             {" "}
             {/* Ensures content width is constrained */}
             <Routes>
-              <Route path="/" element={<OptimalRouteForm />} />
+              <Route path="/OptimalRouteForm" element={<OptimalRouteForm />} />
               <Route path="/history" element={<VisitHistory />} />
               <Route path="/visithistory" element={<HouseVisitHistory />} />
               <Route path="/Dashboard" element={<Dashboard />} />
               <Route path="/UserDashboard" element={<UserDashboard />} />
-
+              <Route path="/" element={<About />} />
+              <Route path="/Query" element={<QueryManagement />} />
               <Route path="/set-phone" element={<PhoneNumberForm />} />
             </Routes>
           </div>

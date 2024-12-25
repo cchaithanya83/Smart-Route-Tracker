@@ -16,6 +16,9 @@ const UserDashboard: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null); // For displaying/editing phone number
   const [isEditing, setIsEditing] = useState<boolean>(false); // For tracking phone number edit mode
 
+  const [isQuerying, setIsQuerying] = useState<boolean>(false); // For tracking query mode
+  const [userQuery, setUserQuery] = useState<string>(""); // For storing user query
+
   // Generate house number options 1-100
   const houseNumberOptions = Array.from({ length: 100 }, (_, i) => i + 1);
 
@@ -35,6 +38,8 @@ const UserDashboard: React.FC = () => {
       );
       const visitInfo = response.data[0]; // Assuming it returns an array with one object
       setHouseInfo(visitInfo);
+      setPhoneNumber(visitInfo.phone_number || null); // Set phone number for editing
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching visit info:", error);
@@ -51,6 +56,11 @@ const UserDashboard: React.FC = () => {
   // Handle phone number change (for editing)
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumber(e.target.value);
+  };
+
+  // Handle query text change
+  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUserQuery(e.target.value);
   };
 
   // Submit the updated phone number
@@ -74,6 +84,34 @@ const UserDashboard: React.FC = () => {
       } catch (error) {
         console.error("Error updating phone number:", error);
       }
+    }
+  };
+
+  // Submit the user query
+  const submitQuery = async () => {
+    if (userQuery.trim() && selectedHouseId && phoneNumber) {
+      try {
+        await axios.post(
+          "http://localhost:8000/add-query",
+          {
+            house_id: selectedHouseId,
+            phone_number: phoneNumber,
+            query: userQuery,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        alert("Query submitted successfully!");
+        setUserQuery(""); // Clear the query input
+        setIsQuerying(false); // Exit query mode
+      } catch (error) {
+        console.error("Error submitting query:", error);
+      }
+    } else {
+      alert("Please fill in all fields.");
     }
   };
 
@@ -162,6 +200,39 @@ const UserDashboard: React.FC = () => {
             </div>
           )
         )}
+
+        {/* Raise Query Section */}
+        <div className="mt-6">
+          {!isQuerying ? (
+            <button
+              onClick={() => setIsQuerying(true)}
+              className="bg-green-500 text-white p-2 rounded-md w-full"
+            >
+              Raise Query
+            </button>
+          ) : (
+            <div className="mt-4">
+              <textarea
+                placeholder="Type your query (1-200 words)..."
+                value={userQuery}
+                onChange={handleQueryChange}
+                className="p-2 w-full h-32 border bg-gray-800 text-white rounded-md"
+              ></textarea>
+              <button
+                onClick={submitQuery}
+                className="mt-4 bg-blue-500 text-white p-2 rounded-md w-full"
+              >
+                Submit Query
+              </button>
+              <button
+                onClick={() => setIsQuerying(false)}
+                className="mt-2 bg-red-500 text-white p-2 rounded-md w-full"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
