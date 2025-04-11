@@ -20,19 +20,17 @@ cursor = conn.cursor()
 #                     visited INTEGER DEFAULT 0)''')
 
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS route_distances (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    route_id INTEGER,
-    from_house_id INTEGER,
-    to_house_id INTEGER,
-    distance FLOAT,
-    FOREIGN KEY (route_id) REFERENCES routes(id)
-);
+cursor.execute('''CREATE TABLE IF NOT EXISTS waste_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            house_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            description TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
 ''')
 
 # # Insert 100 houses with visited = 0
-for house_id in range(1, 101):
-    cursor.execute("INSERT INTO houses (house_id, visited) VALUES (?, ?)", (house_id, 0))
 
 # Commit changes and close connection
 conn.commit()

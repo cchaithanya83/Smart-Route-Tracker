@@ -13,22 +13,22 @@ const UserDashboard: React.FC = () => {
   const [selectedHouseId, setSelectedHouseId] = useState<number>(0);
   const [houseInfo, setHouseInfo] = useState<HouseVisitInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null); // For displaying/editing phone number
-  const [isEditing, setIsEditing] = useState<boolean>(false); // For tracking phone number edit mode
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isQuerying, setIsQuerying] = useState<boolean>(false);
+  const [userQuery, setUserQuery] = useState<string>("");
+  // New states for waste request
+  const [isRequestingWaste, setIsRequestingWaste] = useState<boolean>(false);
+  const [wasteRequestDate, setWasteRequestDate] = useState<string>("");
+  const [wasteDescription, setWasteDescription] = useState<string>("");
 
-  const [isQuerying, setIsQuerying] = useState<boolean>(false); // For tracking query mode
-  const [userQuery, setUserQuery] = useState<string>(""); // For storing user query
-
-  // Generate house number options 1-100
   const houseNumberOptions = Array.from({ length: 100 }, (_, i) => i + 1);
 
-  // Get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
     const today = new Date();
     return today.toISOString().split("T")[0];
   };
 
-  // Fetching house visit information based on houseId and today's date
   const getHouseVisitInfo = async (houseId: number) => {
     const today = getTodaysDate();
     try {
@@ -36,10 +36,9 @@ const UserDashboard: React.FC = () => {
       const response = await axios.get(
         `http://localhost:8000/get-visit-info?date=${today}&house_id=${houseId}`
       );
-      const visitInfo = response.data[0]; // Assuming it returns an array with one object
+      const visitInfo = response.data[0];
       setHouseInfo(visitInfo);
-      setPhoneNumber(visitInfo.phone_number || null); // Set phone number for editing
-
+      setPhoneNumber(visitInfo.phone_number || null);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching visit info:", error);
@@ -47,23 +46,30 @@ const UserDashboard: React.FC = () => {
     }
   };
 
-  // Handle house number change
   const handleHouseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const houseId = Number(e.target.value);
     setSelectedHouseId(houseId);
   };
 
-  // Handle phone number change (for editing)
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumber(e.target.value);
   };
 
-  // Handle query text change
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setUserQuery(e.target.value);
   };
 
-  // Submit the updated phone number
+  // New handlers for waste request
+  const handleWasteDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWasteRequestDate(e.target.value);
+  };
+
+  const handleWasteDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setWasteDescription(e.target.value);
+  };
+
   const updatePhoneNumber = async () => {
     if (phoneNumber && selectedHouseId) {
       try {
@@ -79,15 +85,14 @@ const UserDashboard: React.FC = () => {
             },
           }
         );
-        setIsEditing(false); // Disable editing mode after update
-        getHouseVisitInfo(selectedHouseId); // Refresh the data
+        setIsEditing(false);
+        getHouseVisitInfo(selectedHouseId);
       } catch (error) {
         console.error("Error updating phone number:", error);
       }
     }
   };
 
-  // Submit the user query
   const submitQuery = async () => {
     if (userQuery.trim() && selectedHouseId && phoneNumber) {
       try {
@@ -105,13 +110,43 @@ const UserDashboard: React.FC = () => {
           }
         );
         alert("Query submitted successfully!");
-        setUserQuery(""); // Clear the query input
-        setIsQuerying(false); // Exit query mode
+        setUserQuery("");
+        setIsQuerying(false);
       } catch (error) {
         console.error("Error submitting query:", error);
       }
     } else {
       alert("Please fill in all fields.");
+    }
+  };
+
+  // New function to submit waste request
+  const submitWasteRequest = async () => {
+    if (wasteRequestDate && wasteDescription.trim() && selectedHouseId) {
+      try {
+        await axios.post(
+          "http://localhost:8000/request-extra-waste-pickup",
+          {
+            house_id: selectedHouseId,
+            date: wasteRequestDate,
+            description: wasteDescription,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        alert("Extra waste pickup request submitted successfully!");
+        setWasteRequestDate("");
+        setWasteDescription("");
+        setIsRequestingWaste(false);
+      } catch (error) {
+        console.error("Error submitting waste request:", error);
+        alert("Failed to submit waste request. Please try again.");
+      }
+    } else {
+      alert("Please fill in both date and description.");
     }
   };
 
@@ -201,8 +236,9 @@ const UserDashboard: React.FC = () => {
           )
         )}
 
-        {/* Raise Query Section */}
-        <div className="mt-6">
+        {/* Action Buttons Section */}
+        <div className="mt-6 space-y-4">
+          {/* Raise Query Section */}
           {!isQuerying ? (
             <button
               onClick={() => setIsQuerying(true)}
@@ -226,6 +262,55 @@ const UserDashboard: React.FC = () => {
               </button>
               <button
                 onClick={() => setIsQuerying(false)}
+                className="mt-2 bg-red-500 text-White p-2 rounded-md w-full"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Request Extra Waste Pickup Section */}
+          {!isRequestingWaste ? (
+            <button
+              onClick={() => setIsRequestingWaste(true)}
+              className="bg-purple-500 text-white p-2 rounded-md w-full"
+            >
+              Request Extra Waste Pickup
+            </button>
+          ) : (
+            <div className="mt-4">
+              <label htmlFor="wasteDate" className="block text-sm font-medium mb-2">
+                Pickup Date:
+              </label>
+              <input
+                id="wasteDate"
+                type="date"
+                value={wasteRequestDate}
+                onChange={handleWasteDateChange}
+                min={getTodaysDate()}
+                className="p-2 w-full border bg-gray-800 text-white rounded-md mb-4"
+              />
+              <label
+                htmlFor="wasteDescription"
+                className="block text-sm font-medium mb-2"
+              >
+                Description:
+              </label>
+              <textarea
+                id="wasteDescription"
+                placeholder="Describe the extra waste (e.g., type, quantity)"
+                value={wasteDescription}
+                onChange={handleWasteDescriptionChange}
+                className="p-2 w-full h-24 border bg-gray-800 text-white rounded-md"
+              ></textarea>
+              <button
+                onClick={submitWasteRequest}
+                className="mt-4 bg-blue-500 text-white p-2 rounded-md w-full"
+              >
+                Submit Waste Request
+              </button>
+              <button
+                onClick={() => setIsRequestingWaste(false)}
                 className="mt-2 bg-red-500 text-white p-2 rounded-md w-full"
               >
                 Cancel

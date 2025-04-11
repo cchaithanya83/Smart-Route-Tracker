@@ -39,19 +39,19 @@ def get_db():
     return conn
 
 # TSP Nearest Neighbor for route calculation
-# def tsp_nearest_neighbor(distance_matrix, start=0):
-#     n = len(distance_matrix)
-#     visited = [False] * n
-#     route = [start]
-#     visited[start] = True
+def tsp_nearest_neighbor(distance_matrix, start=0):
+     n = len(distance_matrix)
+     visited = [False] * n
+     route = [start]
+     visited[start] = True
 
-#     while len(route) < n:
-#         last = route[-1]
-#         next_city = np.argmin([distance_matrix.iloc[last, j] if not visited[j] else float('inf') for j in range(n)])
-#         route.append(next_city)
-#         visited[next_city] = True
+     while len(route) < n:
+         last = route[-1]
+         next_city = np.argmin([distance_matrix.iloc[last, j] if not visited[j] else float('inf') for j in range(n)])
+         route.append(next_city)
+         visited[next_city] = True
 
-#     return route
+     return route
 
 # Predict waste for today for multiple houses
 def predict_waste_for_today(house_ids, day_encoded, is_holiday, neighborhood_encoded, weather_encoded, previous_day_waste):
@@ -140,10 +140,10 @@ def get_optimal_route(details: DayDetails, db=Depends(get_db)):
         if current_weight >= details.truck_capacity:
             break
 
-    # selected_indices = [np.where(house_ids == house)[0][0] for house in selected_houses]
-    # selected_distance_matrix = distance_matrix.iloc[selected_indices, selected_indices]
-    # tsp_route = tsp_nearest_neighbor(selected_distance_matrix)
-    # optimal_route = [selected_houses[i] for i in tsp_route]
+    selected_indices = [np.where(house_ids == house)[0][0] for house in selected_houses]
+    selected_distance_matrix = distance_matrix.iloc[selected_indices, selected_indices]
+    tsp_route = tsp_nearest_neighbor(selected_distance_matrix)
+    optimal_route = [selected_houses[i] for i in tsp_route]
     
     
     optimal_route=sorted(selected_houses)
@@ -497,6 +497,7 @@ def mark_query_done(update: QueryStatusUpdate, db=Depends(get_db)):
         raise HTTPException(status_code=404, detail="Query not found")
     db.commit()
     return {"message": f"Query {update.query_id} marked as done"}
+
 
 
 
