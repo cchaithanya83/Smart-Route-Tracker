@@ -17,7 +17,9 @@ const UserDashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [userQuery, setUserQuery] = useState<string>("");
-  // New states for waste request
+  const [queryImage, setQueryImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // States for waste request
   const [isRequestingWaste, setIsRequestingWaste] = useState<boolean>(false);
   const [wasteRequestDate, setWasteRequestDate] = useState<string>("");
   const [wasteDescription, setWasteDescription] = useState<string>("");
@@ -59,7 +61,21 @@ const UserDashboard: React.FC = () => {
     setUserQuery(e.target.value);
   };
 
-  // New handlers for waste request
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setQueryImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setQueryImage(null);
+      setImagePreview(null);
+    }
+  };
+
   const handleWasteDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWasteRequestDate(e.target.value);
   };
@@ -96,31 +112,33 @@ const UserDashboard: React.FC = () => {
   const submitQuery = async () => {
     if (userQuery.trim() && selectedHouseId && phoneNumber) {
       try {
-        await axios.post(
-          "http://localhost:8000/add-query",
-          {
-            house_id: selectedHouseId,
-            phone_number: phoneNumber,
-            query: userQuery,
+        const formData = new FormData();
+        formData.append("house_id", selectedHouseId.toString());
+        formData.append("phone_number", phoneNumber);
+        formData.append("query", userQuery);
+        if (queryImage) {
+          formData.append("image", queryImage);
+        }
+
+        await axios.post("http://localhost:8000/add-query", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
           },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        });
         alert("Query submitted successfully!");
         setUserQuery("");
+        setQueryImage(null);
+        setImagePreview(null);
         setIsQuerying(false);
       } catch (error) {
         console.error("Error submitting query:", error);
+        alert("Failed to submit query. Please try again.");
       }
     } else {
-      alert("Please fill in all fields.");
+      alert("Please fill in all required fields.");
     }
   };
 
-  // New function to submit waste request
   const submitWasteRequest = async () => {
     if (wasteRequestDate && wasteDescription.trim() && selectedHouseId) {
       try {
@@ -248,12 +266,39 @@ const UserDashboard: React.FC = () => {
             </button>
           ) : (
             <div className="mt-4">
+              <label htmlFor="query" className="block text-sm font-medium mb-2">
+                Query (1-200 words):
+              </label>
               <textarea
-                placeholder="Type your query (1-200 words)..."
+                id="query"
+                placeholder="Type your query..."
                 value={userQuery}
                 onChange={handleQueryChange}
                 className="p-2 w-full h-32 border bg-gray-800 text-white rounded-md"
               ></textarea>
+              <label
+                htmlFor="queryImage"
+                className="block text-sm font-medium mb-2 mt-4"
+              >
+                Upload Image (optional):
+              </label>
+              <input
+                id="queryImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="p-2 w-full border bg-gray-800 text-white rounded-md"
+              />
+              {imagePreview && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium">Image Preview:</p>
+                  <img
+                    src={imagePreview}
+                    alt="Query Image Preview"
+                    className="mt-2 max-w-full h-auto rounded-md"
+                  />
+                </div>
+              )}
               <button
                 onClick={submitQuery}
                 className="mt-4 bg-blue-500 text-white p-2 rounded-md w-full"
@@ -261,8 +306,13 @@ const UserDashboard: React.FC = () => {
                 Submit Query
               </button>
               <button
-                onClick={() => setIsQuerying(false)}
-                className="mt-2 bg-red-500 text-White p-2 rounded-md w-full"
+                onClick={() => {
+                  setIsQuerying(false);
+                  setUserQuery("");
+                  setQueryImage(null);
+                  setImagePreview(null);
+                }}
+                className="mt-2 bg-red-500 text-white p-2 rounded-md w-full"
               >
                 Cancel
               </button>
@@ -279,7 +329,10 @@ const UserDashboard: React.FC = () => {
             </button>
           ) : (
             <div className="mt-4">
-              <label htmlFor="wasteDate" className="block text-sm font-medium mb-2">
+              <label
+                htmlFor="wasteDate"
+                className="block text-sm font-medium mb-2"
+              >
                 Pickup Date:
               </label>
               <input

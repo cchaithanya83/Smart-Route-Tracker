@@ -265,10 +265,6 @@ def get_visit_history(date: Optional[str] = None, db=Depends(get_db)):
 
 
 
-# Pydantic model for last visited date
-class LastVisitedDateResponse(BaseModel):
-    house_id: int
-    last_visited_date: str
 
 # Get the last visited date for all houses
 @app.get("/get-last-visited-date", response_model=List[LastVisitedDateResponse])

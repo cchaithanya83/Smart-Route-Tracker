@@ -8,6 +8,7 @@ interface Query {
   query: string;
   status: string;
   created_at: string;
+  image?: string; // Base64-encoded image
 }
 
 const QueryManagement = () => {
@@ -21,12 +22,12 @@ const QueryManagement = () => {
   const fetchQueries = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://127.0.0.1:8000/get-queries"); // Replace with your API URL
+      const response = await axios.get("http://127.0.0.1:8000/get-queries");
       console.log("API Response:", response.data);
-      setQueries(response.data || []); // Ensure queries is an array
+      setQueries(response.data || []);
     } catch (error) {
       console.error("Error fetching queries:", error);
-      setQueries([]); // Set to empty array on error
+      setQueries([]);
     }
     setLoading(false);
   };
@@ -35,7 +36,7 @@ const QueryManagement = () => {
     try {
       await axios.patch("http://127.0.0.1:8000/mark-query-done", {
         query_id: queryId,
-      }); // Replace with your API URL
+      });
       setQueries((prevQueries) =>
         prevQueries.map((query) =>
           query.id === queryId ? { ...query, status: "done" } : query
@@ -56,13 +57,23 @@ const QueryManagement = () => {
           {queries.map((query) => (
             <li
               key={query.id}
-              className="p-4 bg-gray-700 rounded shadow flex justify-between items-center"
+              className="p-4 bg-gray-700 rounded shadow flex flex-col sm:flex-row justify-between items-start sm:items-center"
             >
-              <div>
+              <div className="flex flex-col space-y-2">
                 <p className="font-semibold">
                   House ID: {query.house_id} | Phone: {query.phone_number}
                 </p>
-                <p className="mt-1 italic">Query: {query.query}</p>
+                <p className="italic">Query: {query.query}</p>
+                {query.image && (
+                  <img
+                    src={`data:image/jpeg;base64,${query.image}`}
+                    alt="Query Image"
+                    className="mt-2 max-w-xs h-auto rounded"
+                    onError={(e) => {
+                      e.currentTarget.src = `data:image/png;base64,${query.image}`;
+                    }}
+                  />
+                )}
                 <p
                   className={`mt-2 ${
                     query.status === "done"
@@ -78,8 +89,9 @@ const QueryManagement = () => {
               </div>
               {query.status !== "done" && (
                 <button
-                  className="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 focus:outline-none"
+                  className="mt-4 sm:mt-0 sm:ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 focus:outline-none"
                   onClick={() => markAsDone(query.id)}
+                  disabled={loading}
                 >
                   Mark as Done
                 </button>

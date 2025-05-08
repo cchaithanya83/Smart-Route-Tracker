@@ -77,6 +77,21 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const markRequestCompleted = async (requestId: number) => {
+    try {
+      await axios.post("http://localhost:8000/update-waste-request", {
+        request_id: requestId,
+        status: "completed",
+      });
+      // Refresh waste requests after marking as completed
+      await fetchWasteRequests();
+      alert(`Waste request ${requestId} marked as completed`);
+    } catch (error) {
+      console.error("Error marking waste request as completed:", error);
+      alert("Failed to mark waste request as completed");
+    }
+  };
+
   const fetchDistance = async (
     houseId1: number,
     houseId2: number
@@ -171,7 +186,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-gray-900">
       {/* Sidebar for Waste Requests */}
-      <div className="w-1/4 bg-gray-800 p-6 rounded-lg shadow-lg text-white">
+      <div className="w-1/4 bg-gray metallurgy-800 p-6 rounded-lg shadow-lg text-white">
         <h2 className="text-2xl font-semibold mb-4">Extra Waste Requests</h2>
         {loadingRequests ? (
           <p className="text-center text-blue-500">Loading...</p>
@@ -191,6 +206,14 @@ const Dashboard: React.FC = () => {
                 <p className="text-sm">
                   Created: {new Date(request.created_at).toLocaleString()}
                 </p>
+                {request.status !== "completed" && (
+                  <button
+                    onClick={() => markRequestCompleted(request.id)}
+                    className="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-500"
+                  >
+                    Mark as Completed
+                  </button>
+                )}
               </li>
             ))}
           </ul>
